@@ -35,6 +35,25 @@ void SoftKeyboard::addTextInput(const std::string& text) {
     }
 }
 
+void SoftKeyboard::addTextChange(const std::string& text) {
+    m_currentText = text;
+    
+    if (m_textChangeCallback) {
+        m_textChangeCallback(text);
+    }
+}
+
+void SoftKeyboard::addTextSubmit(const std::string& text) {
+    if (m_textSubmitCallback) {
+        m_textSubmitCallback(text);
+    }
+    
+    // Clear text after submission
+    m_currentText.clear();
+    m_textBuffer.clear();
+    memset(m_inputBuffer, 0, sizeof(m_inputBuffer));
+}
+
 void SoftKeyboard::clearTextInput() {
     m_currentText.clear();
     m_textBuffer.clear();
@@ -45,78 +64,19 @@ std::string SoftKeyboard::getCurrentText() const {
     return m_currentText;
 }
 
-void SoftKeyboard::renderKeyboard() {
-    if (!m_isVisible) return;
+void SoftKeyboard::renderTextInput() {
+    // This method now just renders a text input field that shows the current text
+    // The actual input comes from Java via the native Android keyboard
     
-    ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y - m_height), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, m_height), ImGuiCond_Always);
+    ImGui::Begin("Text Input Status", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     
-    ImGui::Begin("Soft Keyboard", nullptr, 
-                 ImGuiWindowFlags_NoTitleBar | 
-                 ImGuiWindowFlags_NoResize | 
-                 ImGuiWindowFlags_NoMove |
-                 ImGuiWindowFlags_NoScrollbar);
+    ImGui::Text("Current Text: %s", m_currentText.c_str());
+    ImGui::Text("Keyboard Height: %d", m_height);
+    ImGui::Text("Keyboard Visible: %s", m_isVisible ? "Yes" : "No");
     
-    // Text input field
-    ImGui::PushItemWidth(ImGui::GetWindowWidth() - 20);
-    if (ImGui::InputText("##Input", m_inputBuffer, sizeof(m_inputBuffer), 
-                         ImGuiInputTextFlags_EnterReturnsTrue)) {
-        if (strlen(m_inputBuffer) > 0) {
-            addTextInput(m_inputBuffer);
-            memset(m_inputBuffer, 0, sizeof(m_inputBuffer));
-        }
-    }
-    ImGui::PopItemWidth();
-    
-    // Keyboard buttons
-    const char* keys[] = {
-        "1234567890",
-        "qwertyuiop",
-        "asdfghjkl",
-        "zxcvbnm"
-    };
-    
-    float buttonSize = (ImGui::GetWindowWidth() - 40) / 10.0f;
-    float spacing = 5.0f;
-    
-    for (int row = 0; row < 4; ++row) {
-        ImGui::BeginGroup();
-        for (int col = 0; col < strlen(keys[row]); ++col) {
-            if (col > 0) ImGui::SameLine(spacing);
-            
-            char key[2] = {keys[row][col], '\0'};
-            if (ImGui::Button(key, ImVec2(buttonSize, buttonSize))) {
-                addTextInput(key);
-            }
-        }
-        ImGui::EndGroup();
-        
-        if (row < 3) ImGui::Spacing();
-    }
-    
-    // Special keys
-    ImGui::Spacing();
-    ImGui::BeginGroup();
-    
-    if (ImGui::Button("Space", ImVec2(buttonSize * 3, buttonSize))) {
-        addTextInput(" ");
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Back", ImVec2(buttonSize * 2, buttonSize))) {
-        if (!m_currentText.empty()) {
-            m_currentText.pop_back();
-        }
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Clear", ImVec2(buttonSize * 2, buttonSize))) {
+    if (ImGui::Button("Clear Text")) {
         clearTextInput();
     }
-    ImGui::SameLine();
-    if (ImGui::Button("Hide", ImVec2(buttonSize * 2, buttonSize))) {
-        setVisible(false);
-    }
-    
-    ImGui::EndGroup();
     
     ImGui::End();
 }
@@ -129,6 +89,14 @@ void SoftKeyboard::setTextInputCallback(std::function<void(const std::string&)> 
     m_textInputCallback = callback;
 }
 
+void SoftKeyboard::setTextChangeCallback(std::function<void(const std::string&)> callback) {
+    m_textChangeCallback = callback;
+}
+
+void SoftKeyboard::setTextSubmitCallback(std::function<void(const std::string&)> callback) {
+    m_textSubmitCallback = callback;
+}
+
 void SoftKeyboard::setKeyboardStateCallback(std::function<void(bool, int)> callback) {
     m_keyboardStateCallback = callback;
 }
@@ -136,6 +104,14 @@ void SoftKeyboard::setKeyboardStateCallback(std::function<void(bool, int)> callb
 // Static methods called from Java
 void SoftKeyboard::handleTextInputFromJava(const std::string& text) {
     getInstance().addTextInput(text);
+}
+
+void SoftKeyboard::handleTextChangeFromJava(const std::string& text) {
+    getInstance().addTextChange(text);
+}
+
+void SoftKeyboard::handleTextSubmitFromJava(const std::string& text) {
+    getInstance().addTextSubmit(text);
 }
 
 void SoftKeyboard::setKeyboardVisibleFromJava(bool visible) {

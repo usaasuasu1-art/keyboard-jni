@@ -1,14 +1,14 @@
-# ImGui Android Soft Keyboard Integration
+# ImGui Android Native Soft Keyboard Integration
 
-This project provides a complete soft keyboard implementation for ImGui on Android, with both Java and C++ support.
+This project provides native Android soft keyboard integration for ImGui on Android, with both Java and C++ support.
 
 ## Features
 
-- **Custom Soft Keyboard**: Built-in virtual keyboard with QWERTY layout
-- **Text Input Handling**: Seamless text input integration with ImGui
+- **Native Android Soft Keyboard**: Uses the system's built-in soft keyboard
+- **Text Input Handling**: Seamless text input from Java to C++ ImGui
 - **Keyboard State Management**: Automatic detection of keyboard show/hide
 - **Cross-Platform**: Works with both Java Android and C++ ImGui
-- **Touch Support**: Full touch input support for the virtual keyboard
+- **Real-time Text Updates**: Live text input as you type on Android keyboard
 
 ## Project Structure
 
@@ -28,31 +28,32 @@ This project provides a complete soft keyboard implementation for ImGui on Andro
 ## How It Works
 
 ### Java Side (Android)
-1. **SoftKeyboardManager**: Manages the Android soft keyboard state
+1. **SoftKeyboardManager**: Manages the native Android soft keyboard state
 2. **Layout Detection**: Automatically detects when the system keyboard appears/disappears
-3. **JNI Bridge**: Communicates keyboard state to C++ code
+3. **Text Input Handling**: Captures text input from the native Android keyboard
+4. **JNI Bridge**: Communicates text input and keyboard state to C++ code
 
 ### C++ Side (ImGui)
-1. **SoftKeyboard Class**: Implements the virtual keyboard UI
-2. **ImGui Integration**: Renders keyboard using ImGui widgets
-3. **Text Input**: Handles text input and forwards to ImGui input fields
+1. **SoftKeyboard Class**: Handles text input from Java and manages keyboard state
+2. **ImGui Integration**: Receives and displays text from the native Android keyboard
+3. **Text Input Callbacks**: Processes text input, changes, and submissions from Java
 
 ## Usage
 
-### 1. Show/Hide Keyboard
+### 1. Show/Hide Native Android Keyboard
 
 ```java
 // Java side
 SoftKeyboardManager keyboardManager = SoftKeyboardManager.getInstance(this);
-keyboardManager.showKeyboard();  // Show system keyboard
-keyboardManager.hideKeyboard();  // Hide system keyboard
+keyboardManager.showKeyboard();  // Show native Android keyboard
+keyboardManager.hideKeyboard();  // Hide native Android keyboard
 ```
 
 ```cpp
 // C++ side
 SoftKeyboard& keyboard = SoftKeyboard::getInstance();
-keyboard.setVisible(true);   // Show virtual keyboard
-keyboard.setVisible(false);  // Hide virtual keyboard
+keyboard.setVisible(true);   // Show keyboard (managed by Java)
+keyboard.setVisible(false);  // Hide keyboard (managed by Java)
 ```
 
 ### 2. Handle Text Input
@@ -65,18 +66,25 @@ keyboard.setTextInputCallback([](const std::string& text) {
 });
 ```
 
-### 3. Customize Keyboard Layout
+### 3. Handle Different Text Input Types
 
-Edit `SoftKeyboard.cpp` to modify the keyboard layout:
+```java
+// Java side - Set different input types
+keyboardManager.setInputType(EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_VARIATION_PASSWORD);
+keyboardManager.setHint("Enter password");
+```
 
 ```cpp
-// Modify key rows in renderKeyboard() method
-const char* keys[] = {
-    "1234567890",
-    "qwertyuiop",
-    "asdfghjkl",
-    "zxcvbnm"
-};
+// C++ side - Handle different text events
+keyboard.setTextInputCallback([](const std::string& text) {
+    // Handle each character input
+});
+keyboard.setTextChangeCallback([](const std::string& text) {
+    // Handle text changes
+});
+keyboard.setTextSubmitCallback([](const std::string& text) {
+    // Handle text submission (Enter key)
+});
 ```
 
 ## Building
@@ -152,22 +160,25 @@ keyboard.renderKeyboard();
 ## Demo
 
 The included demo menu shows:
-- Text input field
-- Keyboard visibility controls
-- Real-time keyboard state display
+- Text input field that receives text from native Android keyboard
+- Keyboard visibility controls for system keyboard
+- Real-time text input display from Java to C++
+- Keyboard state monitoring
 - Test input functionality
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Keyboard not showing**
+1. **Native Android keyboard not showing**
    - Check if `SoftKeyboardManager` is properly initialized
    - Verify JNI methods are correctly linked
+   - Ensure EditText has proper focus
 
-2. **Text input not working**
-   - Ensure `handleTextInput` JNI method is called
-   - Check if text input callback is set
+2. **Text input not reaching C++ ImGui**
+   - Ensure `handleTextInput`, `handleTextChange`, `handleTextSubmit` JNI methods are called
+   - Check if text input callbacks are set in C++
+   - Verify EditText text change listeners are working
 
 3. **Build errors**
    - Verify ImGui include paths are correct

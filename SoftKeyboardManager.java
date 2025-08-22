@@ -5,11 +5,13 @@ import android.content.Context;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
-import android.widget.FrameLayout;
 import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.graphics.Rect;
 import android.util.Log;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.inputmethod.EditorInfo;
+import android.widget.TextView;
 
 public class SoftKeyboardManager {
     private static final String TAG = "SoftKeyboardManager";
@@ -20,10 +22,17 @@ public class SoftKeyboardManager {
     private boolean isKeyboardVisible = false;
     private int keyboardHeight = 0;
     private OnKeyboardStateChangeListener keyboardListener;
+    private OnTextInputListener textInputListener;
     
     public interface OnKeyboardStateChangeListener {
         void onKeyboardShown(int height);
         void onKeyboardHidden();
+    }
+    
+    public interface OnTextInputListener {
+        void onTextInput(String text);
+        void onTextChanged(String text);
+        void onTextSubmitted(String text);
     }
     
     private SoftKeyboardManager(Context context) {
@@ -44,6 +53,43 @@ public class SoftKeyboardManager {
         hiddenEditText.setVisibility(View.GONE);
         hiddenEditText.setFocusable(true);
         hiddenEditText.setFocusableInTouchMode(true);
+        hiddenEditText.setInputType(EditorInfo.TYPE_CLASS_TEXT | EditorInfo.TYPE_TEXT_VARIATION_NORMAL);
+        
+        // Add text change listener
+        hiddenEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (textInputListener != null) {
+                    textInputListener.onTextChanged(s.toString());
+                }
+            }
+            
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (textInputListener != null) {
+                    textInputListener.onTextInput(s.toString());
+                }
+            }
+        });
+        
+        // Add editor action listener for Enter key
+        hiddenEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, android.view.KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_GO) {
+                    if (textInputListener != null) {
+                        textInputListener.onTextSubmitted(v.getText().toString());
+                    }
+                    // Clear text after submission
+                    v.setText("");
+                    return true;
+                }
+                return false;
+            }
+        });
         
         // Add to the main activity's root view
         if (context instanceof Activity) {
@@ -59,12 +105,16 @@ public class SoftKeyboardManager {
         this.keyboardListener = listener;
     }
     
+    public void setOnTextInputListener(OnTextInputListener listener) {
+        this.textInputListener = listener;
+    }
+    
     public void showKeyboard() {
         if (hiddenEditText != null) {
             hiddenEditText.requestFocus();
             imm.showSoftInput(hiddenEditText, InputMethodManager.SHOW_IMPLICIT);
             isKeyboardVisible = true;
-            Log.d(TAG, "Soft keyboard shown");
+            Log.d(TAG, "Native Android soft keyboard shown");
         }
     }
     
@@ -73,7 +123,7 @@ public class SoftKeyboardManager {
             imm.hideSoftInputFromWindow(hiddenEditText.getWindowToken(), 0);
             hiddenEditText.clearFocus();
             isKeyboardVisible = false;
-            Log.d(TAG, "Soft keyboard hidden");
+            Log.d(TAG, "Native Android soft keyboard hidden");
         }
     }
     
@@ -96,15 +146,31 @@ public class SoftKeyboardManager {
         }
     }
     
-    public void handleTextInput(String text) {
-        // Send text input to native C++ code
-        if (GLES3JNIView.class != null) {
-            try {
-                // Call native method to handle text input
-                GLES3JNIView.handleTextInput(text);
-            } catch (Exception e) {
-                Log.e(TAG, "Error sending text to native code: " + e.getMessage());
-            }
+    public void setInputType(int inputType) {
+        if (hiddenEditText != null) {
+            hiddenEditText.setInputType(inputType);
+        }
+    }
+    
+    public void setHint(String hint) {
+        if (hiddenEditText != null) {
+            hiddenEditText.setHint(hint);
+        }
+    }
+    
+    public void setText(String text) {
+        if (hiddenEditText != null) {
+            hiddenEditText.setText(text);
+        }
+    }
+    
+    public String getText() {
+        return hiddenEditText != null ? hiddenEditText.getText().toString() : "";
+    }
+    
+    public void clearText() {
+        if (hiddenEditText != null) {
+            hiddenEditText.setText("");
         }
     }
     

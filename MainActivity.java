@@ -95,6 +95,27 @@ public class MainActivity extends Activity {
                 GLES3JNIView.setKeyboardVisible(false);
             }
         });
+        
+        // Set text input listener to send text to C++ ImGui
+        keyboardManager.setOnTextInputListener(new SoftKeyboardManager.OnTextInputListener() {
+            @Override
+            public void onTextInput(String text) {
+                // Send text input to C++ ImGui
+                GLES3JNIView.handleTextInput(text);
+            }
+            
+            @Override
+            public void onTextChanged(String text) {
+                // Send text change to C++ ImGui
+                GLES3JNIView.handleTextChange(text);
+            }
+            
+            @Override
+            public void onTextSubmitted(String text) {
+                // Send text submission to C++ ImGui
+                GLES3JNIView.handleTextSubmit(text);
+            }
+        });
     }
     
     public static void Start(Context context) {

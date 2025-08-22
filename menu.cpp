@@ -11,15 +11,15 @@ void BeginDraw() {
 
 void ShowDemoWindow() {
     ImGui::SetNextWindowPos(ImVec2(50, 50), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(450, 350), ImGuiCond_FirstUseEver);
     
-    ImGui::Begin("Soft Keyboard Demo", nullptr);
+    ImGui::Begin("Native Android Soft Keyboard Demo", nullptr);
     
-    ImGui::Text("Soft Keyboard Demo for ImGui Android");
+    ImGui::Text("Native Android Soft Keyboard Integration with ImGui");
     ImGui::Separator();
     
     // Text input field
-    ImGui::Text("Text Input:");
+    ImGui::Text("Text Input Field:");
     ImGui::PushItemWidth(-1);
     if (ImGui::InputText("##TextInput", inputBuffer, sizeof(inputBuffer))) {
         currentText = inputBuffer;
@@ -28,24 +28,25 @@ void ShowDemoWindow() {
     
     ImGui::Spacing();
     
-    // Current text display
-    ImGui::Text("Current Text: %s", currentText.c_str());
+    // Current text display from Java keyboard
+    ImGui::Text("Text from Java Android Keyboard: %s", currentText.c_str());
     ImGui::Text("Keyboard Height: %d", SoftKeyboard::getInstance().getHeight());
     ImGui::Text("Keyboard Visible: %s", SoftKeyboard::getInstance().isVisible() ? "Yes" : "No");
     
     ImGui::Spacing();
     
-    // Control buttons
-    if (ImGui::Button("Show Keyboard", ImVec2(120, 30))) {
+    // Control buttons for native Android keyboard
+    if (ImGui::Button("Show Android Keyboard", ImVec2(150, 30))) {
         showKeyboard = true;
-        SoftKeyboard::getInstance().setVisible(true);
+        // This will trigger the native Android soft keyboard
+        // The keyboard manager will handle showing it
     }
     
     ImGui::SameLine();
     
-    if (ImGui::Button("Hide Keyboard", ImVec2(120, 30))) {
+    if (ImGui::Button("Hide Android Keyboard", ImVec2(150, 30))) {
         showKeyboard = false;
-        SoftKeyboard::getInstance().setVisible(false);
+        // This will hide the native Android soft keyboard
     }
     
     ImGui::Spacing();
@@ -59,18 +60,28 @@ void ShowDemoWindow() {
     ImGui::SameLine();
     
     if (ImGui::Button("Test Input", ImVec2(120, 30))) {
-        SoftKeyboard::getInstance().addTextInput("Test Input!");
+        // This simulates text input from Java
+        SoftKeyboard::getInstance().addTextInput("Test Input from Java!");
     }
     
     ImGui::Spacing();
     ImGui::Separator();
     
-    // Instructions
-    ImGui::TextWrapped("Instructions:");
-    ImGui::BulletText("Click 'Show Keyboard' to display the soft keyboard");
-    ImGui::BulletText("Use the keyboard to input text");
-    ImGui::BulletText("Text will appear in the input field above");
-    ImGui::BulletText("Click 'Hide Keyboard' to hide the keyboard");
+    // Instructions for native Android keyboard
+    ImGui::TextWrapped("How to use Native Android Soft Keyboard:");
+    ImGui::BulletText("Click 'Show Android Keyboard' to display the system keyboard");
+    ImGui::BulletText("Type using the native Android keyboard (not ImGui)");
+    ImGui::BulletText("Text will automatically appear in the input field above");
+    ImGui::BulletText("Press Enter/Done on the Android keyboard to submit");
+    ImGui::BulletText("Click 'Hide Android Keyboard' to hide the system keyboard");
+    
+    ImGui::Spacing();
+    ImGui::TextWrapped("Features:");
+    ImGui::BulletText("Uses native Android soft keyboard (not custom ImGui keyboard)");
+    ImGui::BulletText("Automatic text input from Java to C++ ImGui");
+    ImGui::BulletText("Real-time text change detection");
+    ImGui::BulletText("Proper keyboard state management");
+    ImGui::BulletText("Supports all Android keyboard features (autocomplete, etc.)");
     
     ImGui::End();
 }

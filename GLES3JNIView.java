@@ -41,6 +41,8 @@ public class GLES3JNIView extends GLSurfaceView implements GLSurfaceView.Rendere
 	public static native void MotionEventClick(boolean down,float PosX,float PosY);
 	public static native String getWindowRect();
 	public static native void handleTextInput(String text);
+	public static native void handleTextChange(String text);
+	public static native void handleTextSubmit(String text);
 	public static native void setKeyboardVisible(boolean visible);
 	public static native boolean isKeyboardVisible();
 	public static native int getKeyboardHeight();

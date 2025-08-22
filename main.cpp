@@ -77,6 +77,8 @@ extern "C" {
     
     // Soft keyboard JNI methods
     JNIEXPORT void JNICALL Java_com_forseken_froz_GLES3JNIView_handleTextInput(JNIEnv* env, jobject obj, jstring text);
+    JNIEXPORT void JNICALL Java_com_forseken_froz_GLES3JNIView_handleTextChange(JNIEnv* env, jobject obj, jstring text);
+    JNIEXPORT void JNICALL Java_com_forseken_froz_GLES3JNIView_handleTextSubmit(JNIEnv* env, jobject obj, jstring text);
     JNIEXPORT void JNICALL Java_com_forseken_froz_GLES3JNIView_setKeyboardVisible(JNIEnv* env, jobject obj, jboolean visible);
     JNIEXPORT jboolean JNICALL Java_com_forseken_froz_GLES3JNIView_isKeyboardVisible(JNIEnv* env, jobject obj);
     JNIEXPORT jint JNICALL Java_com_forseken_froz_GLES3JNIView_getKeyboardHeight(JNIEnv* env, jobject obj);
@@ -113,8 +115,16 @@ Java_com_forseken_froz_GLES3JNIView_init(JNIEnv* env, jclass cls) {
 	// Initialize soft keyboard
 	SoftKeyboard& keyboard = SoftKeyboard::getInstance();
 	keyboard.setTextInputCallback([](const std::string& text) {
-		// Handle text input here
-		Log.d("SoftKeyboard", "Text input: " + text);
+		// Handle text input from Java Android keyboard
+		printf("Text input from Java: %s\n", text.c_str());
+	});
+	keyboard.setTextChangeCallback([](const std::string& text) {
+		// Handle text change from Java Android keyboard
+		printf("Text changed from Java: %s\n", text.c_str());
+	});
+	keyboard.setTextSubmitCallback([](const std::string& text) {
+		// Handle text submission from Java Android keyboard
+		printf("Text submitted from Java: %s\n", text.c_str());
 	});
 	
 	g_Initialized = true;
@@ -151,8 +161,8 @@ Java_com_forseken_froz_GLES3JNIView_step(JNIEnv* env, jobject obj) {
     
     BeginDraw();
     
-    // Render soft keyboard if visible
-    SoftKeyboard::getInstance().renderKeyboard();
+    // Render text input status (shows text from Java Android keyboard)
+    SoftKeyboard::getInstance().renderTextInput();
     
     ImGui::EndFrame();
 	
@@ -199,6 +209,26 @@ JNIEXPORT void JNICALL Java_com_forseken_froz_GLES3JNIView_handleTextInput(JNIEn
     const char* textStr = env->GetStringUTFChars(text, 0);
     if (textStr) {
         SoftKeyboard::handleTextInputFromJava(std::string(textStr));
+        env->ReleaseStringUTFChars(text, textStr);
+    }
+}
+
+JNIEXPORT void JNICALL Java_com_forseken_froz_GLES3JNIView_handleTextChange(JNIEnv* env, jobject obj, jstring text) {
+    if (!g_Initialized) return;
+    
+    const char* textStr = env->GetStringUTFChars(text, 0);
+    if (textStr) {
+        SoftKeyboard::handleTextChangeFromJava(std::string(textStr));
+        env->ReleaseStringUTFChars(text, textStr);
+    }
+}
+
+JNIEXPORT void JNICALL Java_com_forseken_froz_GLES3JNIView_handleTextSubmit(JNIEnv* env, jobject obj, jstring text) {
+    if (!g_Initialized) return;
+    
+    const char* textStr = env->GetStringUTFChars(text, 0);
+    if (textStr) {
+        SoftKeyboard::handleTextSubmitFromJava(std::string(textStr));
         env->ReleaseStringUTFChars(text, textStr);
     }
 }
