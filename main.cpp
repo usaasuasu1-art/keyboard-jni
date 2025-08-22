@@ -42,6 +42,7 @@
 #include "RGB.h"
 #include "Includes/Utils.h"
 #include "Includes/Macros.h"
+#include "SoftKeyboard.h"
 
 //Ida Pro Define
 typedef uint32_t _DWORD;
@@ -73,6 +74,12 @@ extern "C" {
     JNIEXPORT void JNICALL Java_com_forseken_froz_GLES3JNIView_MotionEventClick(JNIEnv* env, jobject obj,jboolean down,jfloat PosX,jfloat PosY);
     JNIEXPORT jstring JNICALL Java_com_forseken_froz_GLES3JNIView_getWindowRect(JNIEnv *env, jobject thiz);
     JNIEXPORT void JNICALL Java_com_forseken_froz_GLES3JNIView_real(JNIEnv* env, jobject obj, jint width, jint height);
+    
+    // Soft keyboard JNI methods
+    JNIEXPORT void JNICALL Java_com_forseken_froz_GLES3JNIView_handleTextInput(JNIEnv* env, jobject obj, jstring text);
+    JNIEXPORT void JNICALL Java_com_forseken_froz_GLES3JNIView_setKeyboardVisible(JNIEnv* env, jobject obj, jboolean visible);
+    JNIEXPORT jboolean JNICALL Java_com_forseken_froz_GLES3JNIView_isKeyboardVisible(JNIEnv* env, jobject obj);
+    JNIEXPORT jint JNICALL Java_com_forseken_froz_GLES3JNIView_getKeyboardHeight(JNIEnv* env, jobject obj);
 };
 
 JNIEXPORT void JNICALL
@@ -102,6 +109,13 @@ Java_com_forseken_froz_GLES3JNIView_init(JNIEnv* env, jclass cls) {
     icons_config.OversampleH = 2.5;
     icons_config.OversampleV = 2.5;
 	io.Fonts->AddFontFromMemoryTTF(const_cast<std::uint8_t*>(Custom3), sizeof(Custom3), 30.f, &CustomFont, io.Fonts->GetGlyphRangesCyrillic());
+	
+	// Initialize soft keyboard
+	SoftKeyboard& keyboard = SoftKeyboard::getInstance();
+	keyboard.setTextInputCallback([](const std::string& text) {
+		// Handle text input here
+		Log.d("SoftKeyboard", "Text input: " + text);
+	});
 	
 	g_Initialized = true;
 	}
@@ -136,6 +150,9 @@ Java_com_forseken_froz_GLES3JNIView_step(JNIEnv* env, jobject obj) {
     ImGui::NewFrame();
     
     BeginDraw();
+    
+    // Render soft keyboard if visible
+    SoftKeyboard::getInstance().renderKeyboard();
     
     ImGui::EndFrame();
 	
@@ -173,6 +190,32 @@ JNIEXPORT jstring JNICALL Java_com_forseken_froz_GLES3JNIView_getWindowRect(JNIE
     }
     return env->NewStringUTF(result);
 	}
+}
+
+// Soft keyboard JNI implementations
+JNIEXPORT void JNICALL Java_com_forseken_froz_GLES3JNIView_handleTextInput(JNIEnv* env, jobject obj, jstring text) {
+    if (!g_Initialized) return;
+    
+    const char* textStr = env->GetStringUTFChars(text, 0);
+    if (textStr) {
+        SoftKeyboard::handleTextInputFromJava(std::string(textStr));
+        env->ReleaseStringUTFChars(text, textStr);
+    }
+}
+
+JNIEXPORT void JNICALL Java_com_forseken_froz_GLES3JNIView_setKeyboardVisible(JNIEnv* env, jobject obj, jboolean visible) {
+    if (!g_Initialized) return;
+    SoftKeyboard::setKeyboardVisibleFromJava(visible);
+}
+
+JNIEXPORT jboolean JNICALL Java_com_forseken_froz_GLES3JNIView_isKeyboardVisible(JNIEnv* env, jobject obj) {
+    if (!g_Initialized) return false;
+    return SoftKeyboard::isKeyboardVisibleFromJava();
+}
+
+JNIEXPORT jint JNICALL Java_com_forseken_froz_GLES3JNIView_getKeyboardHeight(JNIEnv* env, jobject obj) {
+    if (!g_Initialized) return 0;
+    return SoftKeyboard::getKeyboardHeightFromJava();
 }
 
 
