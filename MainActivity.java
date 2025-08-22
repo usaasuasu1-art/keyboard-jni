@@ -35,6 +35,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import android.content.pm.PackageManager;
+import android.view.ViewTreeObserver;
+import android.view.View.OnLayoutChangeListener;
+
 public class MainActivity extends Activity {
      
     public static WindowManager manager;
@@ -45,6 +48,8 @@ public class MainActivity extends Activity {
     
     public static int 真实宽;//分辨率x
     public static int 真实高;//分辨率y
+    private SoftKeyboardManager keyboardManager;
+    private View rootView;
      
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,7 +58,43 @@ public class MainActivity extends Activity {
             //Toast.makeText(this, "请授权应用悬浮窗权限", Toast.LENGTH_LONG).show();
             //startActivityForResult(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName())), 0);
         }
+        
+        // Initialize soft keyboard manager
+        keyboardManager = SoftKeyboardManager.getInstance(this);
+        setupKeyboardDetection();
+        
         Start(this);
+    }
+    
+    private void setupKeyboardDetection() {
+        rootView = getWindow().getDecorView().findViewById(android.R.id.content);
+        rootView.addOnLayoutChangeListener(new OnLayoutChangeListener() {
+            @Override
+            public void onLayoutChange(View v, int left, int top, int right, int bottom, 
+                                    int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                int heightDiff = (oldBottom - oldTop) - (bottom - top);
+                if (heightDiff > 100) { // Keyboard shown
+                    keyboardManager.updateKeyboardHeight(heightDiff);
+                } else if (heightDiff < -100) { // Keyboard hidden
+                    keyboardManager.updateKeyboardHeight(0);
+                }
+            }
+        });
+        
+        // Set keyboard state change listener
+        keyboardManager.setOnKeyboardStateChangeListener(new SoftKeyboardManager.OnKeyboardStateChangeListener() {
+            @Override
+            public void onKeyboardShown(int height) {
+                // Notify native code about keyboard state
+                GLES3JNIView.setKeyboardVisible(true);
+            }
+            
+            @Override
+            public void onKeyboardHidden() {
+                // Notify native code about keyboard state
+                GLES3JNIView.setKeyboardVisible(false);
+            }
+        });
     }
     
     public static void Start(Context context) {
@@ -127,8 +168,16 @@ public class MainActivity extends Activity {
         }
         params.gravity = Gravity.LEFT | Gravity.TOP;        // 调整悬浮窗显示的停靠位置为左侧置顶
         params.x = params.y = 0;
-        params.width = params.height = isWindow ? WindowManager.LayoutParams.MATCH_PARENT : 0;
+        params.width = params.height = isWindow ? WindowManager.MATCH_PARENT : 0;
         return params;
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (keyboardManager != null) {
+            keyboardManager.cleanup();
+        }
     }
 } 
 
